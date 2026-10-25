@@ -1,6 +1,6 @@
-; Inno Setup 腳本。建置: ISCC.exe /DAppVersion=1.0.0 installer\AudioSwitch.iss  (先執行 build.bat)
+﻿; Inno Setup 腳本。建置: ISCC.exe /DAppVersion=1.1.0 installer\AudioSwitch.iss  (先執行 build.bat)
 #ifndef AppVersion
-  #define AppVersion "1.0.0"
+  #define AppVersion "1.1.0"
 #endif
 
 [Setup]
@@ -34,8 +34,8 @@ Name: "autostart"; Description: "開機時自動啟動托盤圖示 / Start the t
 Source: "..\dist\AudioSwitch-*.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{autoprograms}\AudioSwitch 設定檔編輯器"; Filename: "{app}\AudioSwitch-Editor.exe"
-Name: "{autoprograms}\AudioSwitch 托盤圖示"; Filename: "{app}\AudioSwitch-Tray.exe"
+Name: "{autoprograms}\AudioSwitch Profile Editor"; Filename: "{app}\AudioSwitch-Editor.exe"
+Name: "{autoprograms}\AudioSwitch Tray"; Filename: "{app}\AudioSwitch-Tray.exe"
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "AudioSwitchTray"; ValueData: """{app}\AudioSwitch-Tray.exe"""; Flags: uninsdeletevalue; Tasks: autostart

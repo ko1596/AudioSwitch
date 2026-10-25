@@ -15,8 +15,8 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("AudioSwitch")]
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
 class MMDeviceEnumerator { }
@@ -81,6 +81,20 @@ interface IPolicyConfig
     [PreserveSig] int SetEndpointVisibility([MarshalAs(UnmanagedType.LPWStr)] string id, int visible);
 }
 
+// 介面語言: 依 Windows 顯示語言 (中文 → 繁中, 其他 → 英文); 環境變數 AUDIOSWITCH_LANG=zh|en 可強制指定
+static class L
+{
+    public static readonly bool Zh = Detect();
+    static bool Detect()
+    {
+        string o = Environment.GetEnvironmentVariable("AUDIOSWITCH_LANG");
+        if (!string.IsNullOrEmpty(o)) return o.ToLowerInvariant().StartsWith("zh");
+        return System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "zh";
+    }
+    public static string UiFont { get { return Zh ? "Microsoft JhengHei UI" : "Segoe UI"; } }
+    public static string T(string zh, string en) { return Zh ? zh : en; }
+}
+
 class Dev { public string Id, Name; }
 
 // 系統匣小工具: 點圖示列出播放/錄音裝置, 點選即切換預設
@@ -131,12 +145,12 @@ class TrayApp : ApplicationContext
     {
         string id = Program.GetDefaultId(en, flow);
         foreach (var d in Program.GetDevices(en, flow)) if (d.Id == id) return d.Name;
-        return "(無)";
+        return L.T("(無)", "(none)");
     }
 
     void UpdateTip()
     {
-        string t = "播放: " + NameOf(0);
+        string t = L.T("播放: ", "Playback: ") + NameOf(0);
         ni.Text = t.Length > 63 ? t.Substring(0, 63) : t;
     }
 
@@ -157,7 +171,7 @@ class TrayApp : ApplicationContext
     void Rebuild()
     {
         menu.Items.Clear();
-        menu.Items.Add(new ToolStripMenuItem("🎛 設定檔") { Enabled = false });
+        menu.Items.Add(new ToolStripMenuItem(L.T("🎛 設定檔", "🎛 Profiles")) { Enabled = false });
         var ps = Program.LoadProfiles();
         int cur = Program.CurrentProfile(en, ps);
         for (int k = 0; k < ps.Count; k++)
@@ -173,11 +187,11 @@ class TrayApp : ApplicationContext
                     UpdateTip();
                     new OsdForm(p.Icon, p.Name, idx, ps.Count).Show();
                 }
-                else ni.ShowBalloonTip(2000, "AudioSwitch", "找不到「" + p.Name + "」的裝置", ToolTipIcon.Warning);
+                else ni.ShowBalloonTip(2000, "AudioSwitch", L.T("找不到「" + p.Name + "」的裝置", "Devices not found for \"" + p.Name + "\""), ToolTipIcon.Warning);
             };
             menu.Items.Add(item);
         }
-        var edit = new ToolStripMenuItem("編輯設定檔…");
+        var edit = new ToolStripMenuItem(L.T("編輯設定檔…", "Edit profiles…"));
         edit.Click += delegate
         {
             string editor = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Application.ExecutablePath), "AudioSwitch-Editor.exe");
@@ -186,20 +200,20 @@ class TrayApp : ApplicationContext
         };
         menu.Items.Add(edit);
         menu.Items.Add(new ToolStripSeparator());
-        AddSection("🔊 播放裝置", 0);
+        AddSection(L.T("🔊 播放裝置", "🔊 Playback devices"), 0);
         menu.Items.Add(new ToolStripSeparator());
-        AddSection("🎤 錄音裝置", 1);
+        AddSection(L.T("🎤 錄音裝置", "🎤 Recording devices"), 1);
         menu.Items.Add(new ToolStripSeparator());
 
-        var auto = new ToolStripMenuItem("開機自動啟動") { Checked = IsAutoStart() };
+        var auto = new ToolStripMenuItem(L.T("開機自動啟動", "Start with Windows")) { Checked = IsAutoStart() };
         auto.Click += delegate { SetAutoStart(!IsAutoStart()); };
         menu.Items.Add(auto);
 
-        var sound = new ToolStripMenuItem("開啟 Windows 音效設定");
+        var sound = new ToolStripMenuItem(L.T("開啟 Windows 音效設定", "Open Windows sound settings"));
         sound.Click += delegate { System.Diagnostics.Process.Start("ms-settings:sound"); };
         menu.Items.Add(sound);
 
-        var quit = new ToolStripMenuItem("結束");
+        var quit = new ToolStripMenuItem(L.T("結束", "Exit"));
         quit.Click += delegate { ni.Visible = false; ExitThread(); };
         menu.Items.Add(quit);
     }
@@ -230,11 +244,11 @@ class EditorForm : Form
     }
 
     static readonly IconItem[] Icons = {
-        new IconItem { Key = "headset", Label = "耳機  (headset)" },
-        new IconItem { Key = "speaker", Label = "喇叭  (speaker)" },
-        new IconItem { Key = "mic", Label = "麥克風  (mic)" },
-        new IconItem { Key = "usbmic", Label = "喇叭 + 麥克風  (usbmic)" },
-        new IconItem { Key = "amp", Label = "擴大機  (amp)" },
+        new IconItem { Key = "headset", Label = L.T("耳機  (headset)", "Headset") },
+        new IconItem { Key = "speaker", Label = L.T("喇叭  (speaker)", "Speaker") },
+        new IconItem { Key = "mic", Label = L.T("麥克風  (mic)", "Microphone") },
+        new IconItem { Key = "usbmic", Label = L.T("喇叭 + 麥克風  (usbmic)", "Speaker + microphone") },
+        new IconItem { Key = "amp", Label = L.T("擴大機  (amp)", "Amplifier") },
     };
 
     readonly IMMDeviceEnumerator en = (IMMDeviceEnumerator)new MMDeviceEnumerator();
@@ -254,8 +268,8 @@ class EditorForm : Form
     public EditorForm()
     {
         ps = Program.LoadProfiles();
-        Text = "AudioSwitch 設定檔編輯器";
-        Font = new Font("Microsoft JhengHei UI", 10f);
+        Text = L.T("AudioSwitch 設定檔編輯器", "AudioSwitch Profile Editor");
+        Font = new Font(L.UiFont, 10f);
         AutoScaleDimensions = new SizeF(96f, 96f);
         AutoScaleMode = AutoScaleMode.Dpi;
         ClientSize = new Size(800, 490);
@@ -267,29 +281,29 @@ class EditorForm : Form
         lst.SelectedIndexChanged += delegate { if (!loading) ShowCurrent(); };
         Controls.Add(lst);
 
-        var btnAdd = Btn("新增", 16, 396, 70, 32); btnAdd.Click += delegate { AddProfile(); };
-        btnDel = Btn("刪除", 92, 396, 70, 32); btnDel.Click += delegate { DeleteProfile(); };
+        var btnAdd = Btn(L.T("新增", "Add"), 16, 396, 70, 32); btnAdd.Click += delegate { AddProfile(); };
+        btnDel = Btn(L.T("刪除", "Delete"), 92, 396, 70, 32); btnDel.Click += delegate { DeleteProfile(); };
         btnUp = Btn("▲", 168, 396, 36, 32); btnUp.Click += delegate { MoveItem(-1); };
         btnDown = Btn("▼", 210, 396, 36, 32); btnDown.Click += delegate { MoveItem(1); };
 
-        Controls.Add(Lbl("名稱", 272, 24));
+        Controls.Add(Lbl(L.T("名稱", "Name"), 272, 24));
         txtName = new TextBox { Location = new Point(352, 20), Size = new Size(430, 28) };
         txtName.TextChanged += delegate { Edited(); };
         Controls.Add(txtName);
 
-        Controls.Add(Lbl("輸出 (播放)", 272, 70));
+        Controls.Add(Lbl(L.T("輸出 (播放)", "Output"), 272, 70));
         cbOut = new ComboBox { Location = new Point(352, 66), Size = new Size(430, 28), DropDownStyle = ComboBoxStyle.DropDown };
         cbOut.TextChanged += delegate { Edited(); };
         Controls.Add(cbOut);
         stOut = Status(352, 96);
 
-        Controls.Add(Lbl("輸入 (錄音)", 272, 126));
+        Controls.Add(Lbl(L.T("輸入 (錄音)", "Input"), 272, 126));
         cbIn = new ComboBox { Location = new Point(352, 122), Size = new Size(430, 28), DropDownStyle = ComboBoxStyle.DropDown };
         cbIn.TextChanged += delegate { Edited(); };
         Controls.Add(cbIn);
         stIn = Status(352, 152);
 
-        Controls.Add(Lbl("圖示", 272, 182));
+        Controls.Add(Lbl(L.T("圖示", "Icon"), 272, 182));
         cbIcon = new ComboBox { Location = new Point(352, 178), Size = new Size(430, 28), DropDownStyle = ComboBoxStyle.DropDownList };
         cbIcon.Items.AddRange(Icons);
         cbIcon.SelectedIndexChanged += delegate { Edited(); };
@@ -300,14 +314,14 @@ class EditorForm : Form
         panel.Controls.Add(pic);
         Controls.Add(panel);
 
-        var hint = Lbl("輸出/輸入可從清單選，也可直接輸入裝置名稱的一部分；留空代表不更動。\r\n按切換鍵時依左邊清單的順序輪流，找不到裝置的設定檔會自動跳過。", 272, 402);
+        var hint = Lbl(L.T("輸出/輸入可從清單選，也可直接輸入裝置名稱的一部分；留空代表不更動。\r\n按切換鍵時依左邊清單的順序輪流，找不到裝置的設定檔會自動跳過。", "Pick a device or type part of its name; empty = leave unchanged.\r\nCycles in list order; profiles with missing devices are skipped."), 272, 402);
         hint.AutoSize = false; hint.Size = new Size(510, 44); hint.ForeColor = Color.Gray; hint.Font = new Font(Font.FontFamily, 9f);
         Controls.Add(hint);
 
-        var btnSave = Btn("儲存", 272, 446, 100, 34); btnSave.Click += delegate { Save(); };
-        btnApply = Btn("立即切到這組", 380, 446, 140, 34); btnApply.Click += delegate { ApplyNow(); };
-        var btnRefresh = Btn("重新讀取裝置", 528, 446, 130, 34); btnRefresh.Click += delegate { LoadDevices(); ShowCurrent(); };
-        var btnClose = Btn("關閉", 682, 446, 100, 34); btnClose.Click += delegate { Close(); };
+        var btnSave = Btn(L.T("儲存", "Save"), 272, 446, 100, 34); btnSave.Click += delegate { Save(); };
+        btnApply = Btn(L.T("立即切到這組", "Apply now"), 380, 446, 140, 34); btnApply.Click += delegate { ApplyNow(); };
+        var btnRefresh = Btn(L.T("重新讀取裝置", "Refresh devices"), 528, 446, 130, 34); btnRefresh.Click += delegate { LoadDevices(); ShowCurrent(); };
+        var btnClose = Btn(L.T("關閉", "Close"), 682, 446, 100, 34); btnClose.Click += delegate { Close(); };
         lblApplied = new Label { Location = new Point(16, 452), Size = new Size(240, 24), ForeColor = Color.Gray, Text = "" };
         Controls.Add(lblApplied);
 
@@ -387,10 +401,10 @@ class EditorForm : Form
     static void SetStatus(Label l, string kw, List<Dev> devs)
     {
         kw = kw.Trim();
-        if (kw.Length == 0) { l.Text = "不更動"; l.ForeColor = Color.Gray; return; }
+        if (kw.Length == 0) { l.Text = L.T("不更動", "Unchanged"); l.ForeColor = Color.Gray; return; }
         var d = Program.Find(devs, kw);
-        if (d != null) { l.Text = "● 對應到: " + d.Name; l.ForeColor = Color.FromArgb(0, 140, 70); }
-        else { l.Text = "● 目前找不到符合的裝置 (沒連線或沒開機?)"; l.ForeColor = Color.FromArgb(200, 60, 40); }
+        if (d != null) { l.Text = L.T("● 對應到: ", "● Matches: ") + d.Name; l.ForeColor = Color.FromArgb(0, 140, 70); }
+        else { l.Text = L.T("● 目前找不到符合的裝置 (沒連線或沒開機?)", "● No matching device right now (unplugged or off?)"); l.ForeColor = Color.FromArgb(200, 60, 40); }
     }
 
     void Edited()
@@ -414,7 +428,7 @@ class EditorForm : Form
     void SetDirty(bool d)
     {
         dirty = d;
-        Text = "AudioSwitch 設定檔編輯器" + (d ? " *" : "");
+        Text = L.T("AudioSwitch 設定檔編輯器", "AudioSwitch Profile Editor") + (d ? " *" : "");
     }
 
     void AddProfile()
@@ -424,7 +438,7 @@ class EditorForm : Form
         string oid = Program.GetDefaultId(en, 0), iid = Program.GetDefaultId(en, 1);
         foreach (var d in outs) if (d.Id == oid) curOut = d.Name;
         foreach (var d in ins) if (d.Id == iid) curIn = d.Name;
-        ps.Add(new Program.Profile { Name = "新設定檔", Out = curOut, In = curIn, Icon = "speaker" });
+        ps.Add(new Program.Profile { Name = L.T("新設定檔", "New profile"), Out = curOut, In = curIn, Icon = "speaker" });
         SetDirty(true);
         RefreshList(ps.Count - 1);
         txtName.Focus(); txtName.SelectAll();
@@ -434,7 +448,7 @@ class EditorForm : Form
     {
         int i = lst.SelectedIndex;
         if (i < 0) return;
-        if (MessageBox.Show("刪除「" + ps[i].Name + "」?", "AudioSwitch", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+        if (MessageBox.Show(L.T("刪除「" + ps[i].Name + "」?", "Delete \"" + ps[i].Name + "\"?"), "AudioSwitch", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         ps.RemoveAt(i);
         SetDirty(true);
         RefreshList(i);
@@ -455,14 +469,14 @@ class EditorForm : Form
         foreach (var p in ps)
         {
             string name = p.Name.Replace("|", " ").Trim();
-            if (name.Length == 0) name = "(未命名)";
+            if (name.Length == 0) name = L.T("(未命名)", "(unnamed)");
             sb.Append(name).Append(" | ").Append(p.Out.Replace("|", " ").Trim()).Append(" | ")
               .Append(p.In.Replace("|", " ").Trim()).Append(" | ").Append(p.Icon).Append("\r\n");
         }
         try { System.IO.File.WriteAllText(Program.ProfilePath, sb.ToString(), new System.Text.UTF8Encoding(true)); }
-        catch (Exception ex) { MessageBox.Show("儲存失敗: " + ex.Message, "AudioSwitch"); return false; }
+        catch (Exception ex) { MessageBox.Show(L.T("儲存失敗: ", "Save failed: ") + ex.Message, "AudioSwitch"); return false; }
         SetDirty(false);
-        lblApplied.Text = "已儲存";
+        lblApplied.Text = L.T("已儲存", "Saved");
         return true;
     }
 
@@ -475,15 +489,15 @@ class EditorForm : Form
         if (Program.ApplyProfile(en, t, out on, out inn))
         {
             new OsdForm(t.Icon, t.Name, lst.SelectedIndex, ps.Count).Show();
-            lblApplied.Text = "已切換";
+            lblApplied.Text = L.T("已切換", "Switched");
         }
-        else lblApplied.Text = "找不到這組的裝置";
+        else lblApplied.Text = L.T("找不到這組的裝置", "Devices for this profile not found");
     }
 
     void OnClosing(object s, FormClosingEventArgs e)
     {
         if (!dirty) return;
-        var r = MessageBox.Show("有尚未儲存的變更，要儲存嗎?", "AudioSwitch", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+        var r = MessageBox.Show(L.T("有尚未儲存的變更，要儲存嗎?", "You have unsaved changes. Save them?"), "AudioSwitch", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
         if (r == DialogResult.Cancel || (r == DialogResult.Yes && !Save())) e.Cancel = true;
     }
 }
@@ -628,7 +642,7 @@ class OsdForm : Form
             using (var pen = new Pen(Color.FromArgb(200, ac), 2f)) g.DrawEllipse(pen, cx - 32, cy - 32, 64, 64);
             DrawIcon(g, key, cx, cy, ac);
 
-            using (var f = new Font("Microsoft JhengHei UI", 20, FontStyle.Bold, GraphicsUnit.Pixel))
+            using (var f = new Font(L.UiFont, 20, FontStyle.Bold, GraphicsUnit.Pixel))
             using (var sf = new StringFormat { LineAlignment = StringAlignment.Center, Trimming = StringTrimming.EllipsisCharacter, FormatFlags = StringFormatFlags.NoWrap })
                 g.DrawString(text, f, Brushes.White, new RectangleF(M + 100, M + 14, BW - 100 - 16, 38), sf);
 
@@ -758,8 +772,8 @@ static class Program
     static string GuessIcon(string name)
     {
         string n = name.ToLowerInvariant();
-        if (n.Contains("耳機") || n.Contains("headset") || n.Contains("arctis")) return "headset";
-        if (n.Contains("sony") || n.Contains("擴大機") || n.Contains("amp")) return "amp";
+        if (n.Contains("耳機") || n.Contains("headphone") || n.Contains("headset") || n.Contains("arctis")) return "headset";
+        if (n.Contains("sony") || n.Contains("擴大機") || n.Contains("receiver") || n.Contains("amp")) return "amp";
         if (n.Contains("usb")) return "usbmic";
         return "speaker";
     }
@@ -778,11 +792,11 @@ static class Program
     internal static string ExeDir { get { return System.IO.Path.GetDirectoryName(Application.ExecutablePath); } }
 
     internal const string Header =
-        "# AudioSwitch 設定檔 (建議用 AudioSwitch-Editor.exe 編輯)\r\n" +
-        "# 格式:  名稱 | 輸出裝置關鍵字 | 輸入裝置關鍵字 | 圖示\r\n" +
-        "# 關鍵字只要是裝置名稱的一部分即可 (不分大小寫); 留空代表不更動。\r\n" +
-        "# 圖示: headset / speaker / mic / usbmic / amp\r\n" +
-        "# 切換時依下列順序輪流; 找不到裝置的設定檔會自動跳過。\r\n";
+        "# AudioSwitch profiles (edit with AudioSwitch-Editor.exe) / 設定檔 (建議用編輯器編輯)\r\n" +
+        "# Format / 格式:  name | output keyword | input keyword | icon\r\n" +
+        "# A keyword is part of a device name (case-insensitive); empty = leave unchanged.\r\n# 關鍵字只要是裝置名稱的一部分即可 (不分大小寫); 留空代表不更動。\r\n" +
+        "# Icons / 圖示: headset / speaker / mic / usbmic / amp\r\n" +
+        "# Profiles are cycled in this order; ones whose devices are missing are skipped.\r\n# 切換時依下列順序輪流; 找不到裝置的設定檔會自動跳過。\r\n";
 
     internal static List<Profile> LoadProfiles()
     {
@@ -870,16 +884,16 @@ static class Program
             if (exe.EndsWith("-profile")) args = new[] { "profile" };
             else if (exe.EndsWith("-out")) args = new[] { "out" };
             else if (exe.EndsWith("-in")) args = new[] { "in" };
-            else { Msg("用法: AudioSwitch out|in|list [名稱關鍵字...]"); return 1; }
+            else { Msg(L.T("用法: AudioSwitch out|in|profile|list [名稱關鍵字...]", "Usage: AudioSwitch out|in|profile|list [name keywords...]")); return 1; }
         }
         string mode = args[0].ToLowerInvariant();
         var en = (IMMDeviceEnumerator)new MMDeviceEnumerator();
 
         if (mode == "list")
         {
-            string s = "【播放】\n";
+            string s = L.T("【播放】\n", "[Playback]\n");
             foreach (var d in GetDevices(en, 0)) s += "  " + d.Name + "\n";
-            s += "【錄音】\n";
+            s += L.T("【錄音】\n", "[Recording]\n");
             foreach (var d in GetDevices(en, 1)) s += "  " + d.Name + "\n";
             Msg(s);
             return 0;
@@ -907,7 +921,7 @@ static class Program
             {
                 string editor = System.IO.Path.Combine(ExeDir, "AudioSwitch-Editor.exe");
                 if (System.IO.File.Exists(editor)) System.Diagnostics.Process.Start(editor);
-                else Msg("還沒有設定檔: " + ProfilePath);
+                else Msg(L.T("還沒有設定檔: ", "No profiles yet: ") + ProfilePath);
                 return 1;
             }
             int cur = CurrentProfile(en, ps);
@@ -921,10 +935,10 @@ static class Program
                 Application.Run(new OsdForm(p.Icon, p.Name, pi, ps.Count));
                 return 0;
             }
-            Msg("所有設定檔的裝置都找不到，請檢查 profiles.txt");
+            Msg(L.T("所有設定檔的裝置都找不到，請檢查設定檔", "None of the profiles' devices were found. Check your profiles in the editor."));
             return 2;
         }
-        if (mode != "out" && mode != "in") { Msg("第一個參數必須是 out、in、profile 或 list"); return 1; }
+        if (mode != "out" && mode != "in") { Msg(L.T("第一個參數必須是 out、in、profile 或 list", "The first argument must be out, in, profile or list")); return 1; }
 
         int flow = mode == "out" ? 0 : 1;
         var all = GetDevices(en, flow);
@@ -940,7 +954,7 @@ static class Program
         }
         else cands = all;
 
-        if (cands.Count == 0) { Msg("找不到符合的裝置，請用 list 查看名稱"); return 2; }
+        if (cands.Count == 0) { Msg(L.T("找不到符合的裝置，請用 list 查看名稱", "No matching device. Run 'list' to see device names")); return 2; }
 
         string curId = null;
         try { IMMDevice cur; en.GetDefaultAudioEndpoint(flow, 0, out cur); cur.GetId(out curId); } catch { }

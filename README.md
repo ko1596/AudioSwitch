@@ -1,91 +1,96 @@
 # AudioSwitch
 
-一鍵切換 Windows **預設音訊裝置**的小工具。可以把「輸出 + 輸入」組成設定檔（例如：耳機、USB 喇叭 + 麥克風、擴大機 + 麥克風），綁在滑鼠側鍵上，按一下就輪換。
+**English** | [繁體中文](README.zh-TW.md)
 
-切換的是系統「預設裝置」，所以 Discord、Teams、遊戲等只要裝置選「預設」，就會自動跟著換，不用每個程式各自設定。
+One-click switching of the Windows **default audio devices**. Group an output and an input into a *profile* (e.g. headset, USB speakers + microphone, AV receiver + microphone), bind it to a mouse button, and each press cycles to the next profile.
 
-> **English:** A tiny Windows tool that cycles the *system default* audio output + input as one-click "profiles". Bind it to a mouse button via your mouse software's "launch program" action (works great with Razer Synapse, no special SDK needed). Apps set to "Default device" follow automatically. No dependencies, no admin rights.
+It changes the system *default* devices, so Discord, Teams, games and so on follow automatically as long as they are set to "Default device" — no per-app settings.
 
-![設定檔編輯器](docs/editor.png)
+Works with any mouse software that can launch a program on a button press (Razer Synapse, Logitech G HUB, etc.) — no vendor SDK needed.
 
-## 特色
+![Profile editor](docs/editor-en.png)
 
-- **設定檔：** 一組 = 輸出裝置 + 輸入裝置 + 名稱 + 圖示，可以有很多組
-- **一鍵輪換：** 依順序切到下一組；找不到裝置（例如擴大機沒開）的設定檔自動跳過
-- **右上角提示卡：** 只顯示圖示和名稱，滑入、淡出，不搶焦點、滑鼠可穿透
-- **托盤圖示：** 點一下就能手動選設定檔或單獨選裝置
-- **圖形化編輯器：** 新增、刪除、排序，即時預覽，並顯示目前有沒有對應到裝置
-- **不需要系統管理員權限**，不需要額外安裝 .NET（用 Windows 內建的 .NET Framework 4）
+## Features
 
-| 耳機 | USB + 麥克風 | 擴大機 + 麥克風 |
+- **Profiles:** output device + input device + name + icon; as many as you like
+- **One-press cycling:** moves to the next profile; profiles whose devices are missing (e.g. the receiver is off) are skipped automatically
+- **Top-right popup card:** just an icon and the name; slides in and fades out, never steals focus, mouse clicks pass through
+- **Tray icon:** pick a profile or a single device by hand
+- **Graphical editor:** add, delete, reorder, live preview, and a live check that each device is currently found
+- **No admin rights, no extra runtime** (uses the .NET Framework 4 that ships with Windows)
+- **UI language follows Windows:** English or Traditional Chinese
+
+| Headset | USB speakers + mic | AV receiver + mic |
 |---|---|---|
-| ![](docs/card-headset.png) | ![](docs/card-usb.png) | ![](docs/card-amp.png) |
+| ![](docs/card-headset-en.png) | ![](docs/card-usb-en.png) | ![](docs/card-amp-en.png) |
 
-## 安裝
+## Install
 
-到 [Releases](../../releases) 下載 `AudioSwitch-Setup-x.y.z.exe` 執行即可。
+Download `AudioSwitch-Setup-x.y.z.exe` from [Releases](../../releases) and run it.
 
-- 安裝在使用者資料夾，不需要系統管理員權限
-- 可選「開機自動啟動托盤圖示」
-- 設定檔存在 `%APPDATA%\AudioSwitch\profiles.txt`，解除安裝不會刪除
+- Installs per user — no administrator rights needed
+- Optional: start the tray icon with Windows
+- Profiles are stored in `%APPDATA%\AudioSwitch\profiles.txt` and are kept when you uninstall
 
-不想安裝的話，也可以自己 [從原始碼建置](#從原始碼建置)，`dist` 資料夾可以直接複製使用。
+A portable `.zip` is also provided on the Releases page. Windows SmartScreen may warn about an unsigned program the first time: click *More info → Run anyway*.
 
-## 使用
+## Usage
 
-1. 開始功能表打開 **AudioSwitch 設定檔編輯器**，按「新增」建立設定檔（會自動帶入你目前正在用的輸出和輸入裝置），調整後按「儲存」。
-2. 在滑鼠軟體把某個按鍵設成「啟動程式」，選安裝資料夾裡的 **`AudioSwitch-Profile.exe`**。
-3. 按那個鍵，就會切到下一組設定檔，並在右上角顯示提示卡。
+1. Open **AudioSwitch Profile Editor** from the Start menu. Click **Add** (it pre-fills the devices you are using right now), adjust, then **Save**.
+2. In your mouse software, bind a button to *Launch program* and pick **`AudioSwitch-Profile.exe`** from the install folder.
+3. Press the button: the next profile is applied and a card appears at the top right.
 
-### 程式一覽
+### The programs
 
-同一個程式以不同檔名安裝，程式依檔名結尾決定行為（因為有些滑鼠軟體的「啟動程式」不能帶參數）：
+One executable is installed under several names; its behavior is chosen by the file-name suffix (many mouse tools cannot pass command-line arguments to a launched program):
 
-| 檔案 | 功能 |
+| File | What it does |
 |---|---|
-| `AudioSwitch-Profile.exe` | 輪換到下一組設定檔 **← 綁滑鼠用這個** |
-| `AudioSwitch-Tray.exe` | 常駐托盤圖示，手動選設定檔或裝置 |
-| `AudioSwitch-Editor.exe` | 設定檔編輯器 |
-| `AudioSwitch-Out.exe` | 只輪換輸出（播放）裝置 |
-| `AudioSwitch-In.exe` | 只輪換輸入（錄音）裝置 |
+| `AudioSwitch-Profile.exe` | Cycle to the next profile **← bind this to your mouse button** |
+| `AudioSwitch-Tray.exe` | Resident tray icon to pick a profile or device by hand |
+| `AudioSwitch-Editor.exe` | Profile editor |
+| `AudioSwitch-Out.exe` | Cycle only the output (playback) device |
+| `AudioSwitch-In.exe` | Cycle only the input (recording) device |
 
-也可以用參數執行 `AudioSwitch.exe`：`profile`、`out`、`in`、`list`（列出裝置名稱）。`out`/`in` 後面可接名稱關鍵字，只在符合的裝置間輪換。
+`AudioSwitch.exe` also accepts arguments: `profile`, `out`, `in`, `list` (print device names). After `out`/`in` you may add name keywords to cycle only between matching devices.
 
-### 設定檔格式
+### Profile file format
 
-編輯器存的是純文字檔，也可以直接用記事本編輯：
+The editor writes a plain text file you can also edit by hand:
 
 ```
-# 名稱 | 輸出裝置關鍵字 | 輸入裝置關鍵字 | 圖示
-耳機 | Arctis | Arctis | headset
-USB 喇叭 + 麥克風 | Realtek USB | Yeti | usbmic
+# name | output keyword | input keyword | icon
+Headset | Arctis | Arctis | headset
+USB Speakers + Mic | Realtek USB | Yeti | usbmic
 ```
 
-- 關鍵字只要是裝置名稱的一部分即可（不分大小寫），留空代表不更動該類裝置
-- 圖示：`headset`、`speaker`、`mic`、`usbmic`、`amp`；不寫會依名稱猜
+- A keyword is any part of the device name (case-insensitive); empty means "leave that side unchanged"
+- Icons: `headset`, `speaker`, `mic`, `usbmic`, `amp`; guessed from the name if omitted
 
-## 從原始碼建置
+## Build from source
 
-只需要 Windows 內建的 .NET Framework 編譯器，不需要 Visual Studio：
+Only the compiler that ships with Windows is needed — no Visual Studio:
 
 ```
 build.bat
 ```
 
-輸出在 `dist\`。要打包安裝程式，另外安裝 [Inno Setup 6](https://jrsoftware.org/isinfo.php)：
+Output goes to `dist\`. To build the installer, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run:
 
 ```
-"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.0 installer\AudioSwitch.iss
+"%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.1.0 installer\AudioSwitch.iss
 ```
 
-## 運作原理與限制
+Set the environment variable `AUDIOSWITCH_LANG=en` or `zh` to force a UI language.
 
-- 列舉裝置用公開的 Core Audio API（`IMMDeviceEnumerator`）。
-- 設定預設裝置用 **未公開** 的 `IPolicyConfig` COM 介面（`SetDefaultEndpoint`），Windows 沒有公開的 API 可以做這件事。許多同類工具也是這樣做；缺點是 Windows 未來更新理論上可能改變它。
-- 一組設定檔會同時設定「一般 / 多媒體 / 通訊」三種角色的預設裝置。
-- 提示卡在**獨佔全螢幕**的遊戲上可能蓋不上去（無邊框視窗化沒問題）。
-- 用關鍵字比對裝置名稱，而不是裝置 ID；如果 Windows 或驅動改了裝置名稱，要在編輯器裡更新關鍵字。
+## How it works, and limits
 
-## 授權
+- Devices are enumerated with the public Core Audio API (`IMMDeviceEnumerator`).
+- The default device is set through the **undocumented** `IPolicyConfig` COM interface (`SetDefaultEndpoint`); Windows has no public API for this. Many similar tools do the same, but a future Windows update could in theory change it.
+- A profile sets the default for all three roles (console / multimedia / communications).
+- The popup card may not appear over **exclusive-fullscreen** games (borderless windowed is fine).
+- Devices are matched by name keyword, not by device ID; if Windows or a driver renames a device, update the keyword in the editor.
+
+## License
 
 [MIT](LICENSE)
